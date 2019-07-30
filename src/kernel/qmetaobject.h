@@ -31,7 +31,7 @@
 
 struct QMetaData				// member function meta data
 {						//   for signal and slots
-    char   *name;				// - member name
+    const char   *name;				// - member name
     QMember ptr;				// - member pointer
 };
 
