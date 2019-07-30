@@ -23,6 +23,8 @@
 
 #include "qcollection.h"
 
+#include <cstdlib>
+
 /*!
   \class QCollection qcollection.h
   \brief The QCollection class is the base class of all Qt collections.
@@ -143,6 +145,7 @@ GCI QCollection::newItem( GCI d )
 
 void QCollection::deleteItem( GCI d )
 {
+    // Have to use free, delete on void* is undefined behavior
     if ( del_item )
-	delete d;				// default operation
+        free(d);				// default operation
 }
