@@ -95,7 +95,10 @@ char	*straddSpc( const char *, const char *,
 char	*straddSpc( const char *, const char *,
 		    const char *, const char * );
 
+#if YYDEBUG
 extern int yydebug;
+#endif
+
 bool	   lexDebug	   = FALSE;
 bool	   grammarDebug	   = FALSE;
 int	   lineNo;				// current line number
@@ -858,7 +861,9 @@ int main( int argc, char **argv )
 	    } else if ( opt == "ldbg" ) {	// lex debug output
 		lexDebug = TRUE;
 	    } else if ( opt == "ydbg" ) {	// yacc debug output
+        #if YYDEBUG
 		yydebug = TRUE;
+        #endif
 	    } else if ( opt == "dbg" ) {	// non-signal members are slots
 		grammarDebug = TRUE;
 	    } else {
