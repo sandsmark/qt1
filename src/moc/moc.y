@@ -28,7 +28,7 @@
 *****************************************************************************/
 
 %{
-void yyerror( char *msg );
+void yyerror( const char *msg );
 
 #include "qlist.h"
 #include "qstring.h"
@@ -44,7 +44,7 @@ enum AccessPerm { _PRIVATE, _PROTECTED, _PUBLIC };
 
 struct Argument					// single arg meta data
 {
-    Argument( char *left, char *right )
+    Argument( const char *left, const char *right )
 	{ leftType  = rmWS( left );
 	  rightType = rmWS( right );
 	  if ( leftType == "void" && rightType.isEmpty() )
@@ -125,7 +125,7 @@ const int  formatRevision = 2;			// moc output format revision
     char	char_val;
     int		int_val;
     double	double_val;
-    char       *string;
+    const char       *string;
     AccessPerm	access;
     Function   *function;
     ArgList    *arg_list;
@@ -807,7 +807,7 @@ void replace( char *s, char c1, char c2 );
 int main( int argc, char **argv )
 {
     bool autoInclude = TRUE;
-    char *error	     = 0;
+    const char *error	     = 0;
     qtPath = "";
     for ( int n=1; n<argc && error==0; n++ ) {
 	QString arg = argv[n];
@@ -1105,20 +1105,20 @@ void addExpressionChar( char c )
     tmpExpression += c;
 }
 
-void yyerror( char *msg )			// print yacc error message
+void yyerror( const char *msg )			// print yacc error message
 {
     mocError = TRUE;
     fprintf( stderr, "%s:%d: Error: %s\n", fileName.data(), lineNo, msg );
 }
 
-void moc_err( char *s )
+void moc_err( const char *s )
 {
     yyerror( s );
     if ( errorControl )
 	exit( -1 );
 }
 
-void moc_err( char *s1, char *s2 )
+void moc_err( const char *s1, const char *s2 )
 {
     static char tmp[1024];
     sprintf( tmp, s1, s2 );
@@ -1127,13 +1127,13 @@ void moc_err( char *s1, char *s2 )
 	exit( -1 );
 }
 
-void moc_warn( char *msg )
+void moc_warn( const char *msg )
 {
     if ( displayWarnings )
 	fprintf( stderr, "%s:%d: Warning: %s\n", fileName.data(), lineNo, msg);
 }
 
-void func_warn( char *msg )
+void func_warn( const char *msg )
 {
     moc_warn( msg );
     skipFunc = TRUE;
@@ -1226,7 +1226,7 @@ char *straddSpc( const char *s1, const char *s2,
 const int Slot_Num   = 1;
 const int Signal_Num = 2;
 
-void generateFuncs( FuncList *list, char *functype, int num )
+void generateFuncs( FuncList *list, const char *functype, int num )
 {
     Function *f;
     for ( f=list->first(); f; f=list->next() ) {
@@ -1267,12 +1267,12 @@ void generateFuncs( FuncList *list, char *functype, int num )
 void generateClass()		      // generate C++ source code for a class
 {
     static int gen_count = 0;
-    char *hdr1 = "/****************************************************************************\n"
+    const char *hdr1 = "/****************************************************************************\n"
 		 "** %s meta object code from reading C++ file '%s'\n**\n";
-    char *hdr2 = "** Created: %s\n"
+    const char *hdr2 = "** Created: %s\n"
 		 "**      by: The Qt Meta Object Compiler ($Revision: 2.25.2.12 $)\n**\n";
-    char *hdr3 = "** WARNING! All changes made in this file will be lost!\n";
-    char *hdr4 = "*****************************************************************************/\n\n";
+    const char *hdr3 = "** WARNING! All changes made in this file will be lost!\n";
+    const char *hdr4 = "*****************************************************************************/\n\n";
     int   i;
 
     if ( skipClass )				// don't generate for class

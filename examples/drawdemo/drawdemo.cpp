@@ -56,7 +56,7 @@ void drawColorWheel( QPainter *p )
 
 void drawFonts( QPainter *p )
 {
-    static char *fonts[] = { "Helvetica", "Courier", "Times", 0 };
+    static const char *fonts[] = { "Helvetica", "Courier", "Times", 0 };
     static int	 sizes[] = { 10, 12, 18, 24, 0 };
     int f = 0;
     int s = 0;
