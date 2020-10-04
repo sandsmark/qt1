@@ -67,7 +67,7 @@ CursorView::CursorView()			// construct view
 {
     static struct {
 	QCursor *cursor;			// cursor
-	char 	*name;				// cursor name
+	const char 	*name;				// cursor name
     } list[] = {
 	{ (QCursor *)&arrowCursor,	"arrowCursor" },
 	{ (QCursor *)&upArrowCursor,	"upArrowCursor" },

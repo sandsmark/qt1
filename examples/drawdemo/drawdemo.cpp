@@ -152,7 +152,7 @@ typedef void (*draw_func)(QPainter*);
 
 struct DrawThing {
     draw_func	 f;
-    char	*name;
+    const char	*name;
 };
 
 //
@@ -213,7 +213,7 @@ DrawView::DrawView()
   // Calculate the size for the radio buttons
     int maxwidth = 80;
     int i;
-    char *n;
+    const char *n;
     QFontMetrics fm = bgroup->fontMetrics();
     for ( i=0; (n=ourDrawFunctions[i].name) != 0; i++ ) {
 	int w = fm.width( n );

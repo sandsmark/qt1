@@ -389,7 +389,7 @@ void TicTacToe::gameOver()
 
 void TicTacToe::newState()
 {
-    static char *msg[] = {			// TicTacGameBoard::State texts
+    static const char *msg[] = {			// TicTacGameBoard::State texts
 	"Wanna play?", "Make your move",
 	"You won!", "Computer won!", "It's a draw" };
     message->setText( msg[board->state()] );
