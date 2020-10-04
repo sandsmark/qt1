@@ -133,7 +133,7 @@ public:
 		    { return (type *)((QGDict*)this)->QGDict::look(k,0,0); }
     void  statistics() const		{ QGDict::statistics(); }
 private:
-    void  deleteItem( type *d )	{ if ( del_item ) delete d; }
+    void  deleteItem( GCI d )	{ if ( del_item ) delete (type *)d; }
 };
 
 
