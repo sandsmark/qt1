@@ -204,10 +204,10 @@ QApplication::QApplication( int &argc, char **argv )
 	warning( "QApplication: There should be only one application object" );
 #endif
     qApp = this;
-    static const char *empty = "";
     if ( argc == 0 || argv == 0 ) {
 	argc = 0;
-	argv = &empty;
+        char *replacement = strdup("");
+	argv = &replacement;
     }
     qt_init( &argc, argv );
     initialize( argc, argv );
