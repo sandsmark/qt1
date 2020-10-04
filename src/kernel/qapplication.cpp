@@ -204,7 +204,7 @@ QApplication::QApplication( int &argc, char **argv )
 	warning( "QApplication: There should be only one application object" );
 #endif
     qApp = this;
-    static char *empty = "";
+    static const char *empty = "";
     if ( argc == 0 || argv == 0 ) {
 	argc = 0;
 	argv = &empty;
