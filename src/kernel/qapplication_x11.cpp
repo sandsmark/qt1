@@ -44,6 +44,8 @@
 #include <ctype.h>
 #include <locale.h>
 #include <errno.h>
+#include <map>
+#include <vector>
 #define	 GC GC_QQQ
 #if defined(_OS_WIN32_)
 #undef gettimeofday
@@ -171,7 +173,7 @@ static bool	    popupGrabOk;
 static bool	    popupFilter( QWidget * );
 
 typedef void  (*VFPTR)();
-typedef Q_DECLARE(QListM,void) QVFuncList;
+typedef std::vector<VFPTR> QVFuncList;
 static QVFuncList *postRList = 0;		// list of post routines
 
 static void	cleanupPostedEvents();
@@ -686,11 +688,10 @@ void qt_cleanup()
 {
     cleanupPostedEvents();			// remove list of posted events
     if ( postRList ) {
-	VFPTR f = (VFPTR)postRList->first();
-	while ( f ) {				// call post routines
-	    (*f)();
-	    postRList->remove();
-	    f = (VFPTR)postRList->first();
+        QVFuncList::iterator it = postRList->begin();
+	while ( it != postRList->end() ) {				// call post routines
+            (*it)();
+            it = postRList->erase(it);
 	}
 	delete postRList;
     }
@@ -791,7 +792,7 @@ void qAddPostRoutine( CleanUpFunction p )
 	postRList = new QVFuncList;
 	CHECK_PTR( postRList );
     }
-    postRList->insert( 0, (void *)p );		// store at list head
+    postRList->insert( postRList->begin(), p );		// store at list head
 }
 
 
@@ -2986,7 +2987,7 @@ static KeySym KeyTbl[] = {			// keyboard mapping table
 };
 
 
-static QIntDict<void>    *keyDict   = 0;
+static std::map<int, KeySym>    *keyDict   = 0;
 static QIntDict<QString> *asciiDict = 0;
 
 static void deleteKeyDicts()
@@ -3010,8 +3011,7 @@ bool QETWidget::translateKeyEvent( const XEvent *event, bool grab )
     KeySym key = 0;
 
     if ( !keyDict ) {
-	keyDict = new QIntDict<void>( 13 );
-	keyDict->setAutoDelete( FALSE );
+	keyDict = new std::map<int, KeySym>;
 	asciiDict = new QIntDict<QString>( 13 );
 	asciiDict->setAutoDelete( TRUE );
 	qAddPostRoutine( deleteKeyDicts );
@@ -3056,15 +3056,18 @@ bool QETWidget::translateKeyEvent( const XEvent *event, bool grab )
 	    keycode = composingKeycode;
 	    composingKeycode = 0;
 	}
-	keyDict->replace( keycode, (void*)key );
+	(*keyDict)[keycode] = key;
 	if ( count < 15 )
 	    ascii[count] = '\0';
 	if ( count )
 	    asciiDict->replace( keycode, new QString(ascii) );
     } else {
-	key = (int)(long)keyDict->find( keycode );
-	if ( key )
-	    keyDict->take( keycode );
+        if (keyDict->count(keycode)) {
+            key = keyDict->find( keycode )->second;
+            keyDict->erase( keycode );
+        } else {
+            key = 0;
+        }
 	QString * s = asciiDict->find( keycode );
 	if ( s ) {
 	    asciiDict->take( keycode );

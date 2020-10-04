@@ -29,6 +29,7 @@
 #include "qscrollbar.h"
 #include "qpixmap.h"
 #include "qapplication.h"
+#include <map>
 
 Q_DECLARE(QListM, QListBoxItem);
 
@@ -392,7 +393,7 @@ int QListBoxPixmap::width( const QListBox * ) const
 
 #include "qintdict.h"
 
-static QIntDict<int> *qlb_maxLenDict = 0;
+static std::map<const QListBox*, long> *qlb_maxLenDict = 0;
 
 static void cleanupListbox()
 {
@@ -442,7 +443,7 @@ QListBox::QListBox( QWidget *parent, const char *name, WFlags f )
     }
     setFocusPolicy( StrongFocus );
     if ( !qlb_maxLenDict ) {
-	qlb_maxLenDict = new QIntDict<int>;
+	qlb_maxLenDict = new std::map<const QListBox*, long>;
 	CHECK_PTR( qlb_maxLenDict );
 	qAddPostRoutine( cleanupListbox );
     }
@@ -465,7 +466,7 @@ QListBox::~QListBox()
     goingDown = TRUE;
     clearList();
     if ( qlb_maxLenDict )
-	qlb_maxLenDict->remove( (long)this );
+	qlb_maxLenDict->erase( this );
     delete itemList;
 }
 
@@ -1780,9 +1781,9 @@ void QListBox::updateNumRows( bool updateWidth )
 
 long QListBox::maxItemWidth() const
 {
-    if ( !qlb_maxLenDict )
+    if ( !qlb_maxLenDict || qlb_maxLenDict->count(this) == 0)
 	return 0;
-    return (long) qlb_maxLenDict->find( (long)this );
+    return qlb_maxLenDict->find( this )->second;
 }
 
 /*!
@@ -1791,9 +1792,9 @@ long QListBox::maxItemWidth() const
 long QListBox::maxItemWidth()
 {
     // This is only here for binary compatibility
-    if ( !qlb_maxLenDict )
+    if ( !qlb_maxLenDict || qlb_maxLenDict->count(this) == 0 )
 	return 0;
-    return (long) qlb_maxLenDict->find( (long)this );
+    return qlb_maxLenDict->find( this )->second;
     // This is only here for binary compatibility
 }
 
@@ -1805,9 +1806,7 @@ long QListBox::maxItemWidth()
 void QListBox::setMaxItemWidth( int len )
 {
     ASSERT( qlb_maxLenDict );
-    qlb_maxLenDict->remove( (long)this );
-    if ( len )
-	qlb_maxLenDict->insert( (long)this, (int*)len );
+    (*qlb_maxLenDict)[this] =  len;
 }
 
 

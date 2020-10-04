@@ -32,11 +32,11 @@
 #include "qbitmap.h"
 #include "qkeycode.h"
 #include "qdatetime.h"
-#include "qptrdict.h"
 #include "qvector.h"
 
 #include <stdlib.h> // qsort
 #include <ctype.h> // tolower
+#include <map>
 
 const int Unsorted = 16383;
 
@@ -133,7 +133,7 @@ struct QListViewPrivate
     int topPixel;
     int bottomPixel;
 
-    QPtrDict<void> * dirtyItems;
+    std::map<QListViewItem*, QListViewItem *> * dirtyItems;
 
     bool multi;
 
@@ -498,7 +498,7 @@ void QListViewItem::removeItem( QListViewItem * tbg )
 
     QListView * lv = listView();
     if ( lv->d->dirtyItems )
-	lv->d->dirtyItems->take( (void *)tbg );
+	lv->d->dirtyItems->erase( tbg );
 
     if ( lv && lv->d->currentSelected ) {
 	QListViewItem * c = lv->d->currentSelected;
@@ -1474,16 +1474,16 @@ void QListView::drawContentsOffset( QPainter * p, int ox, int oy,
 
     if ( d->dirtyItems ) {
 	QRect br( cx - ox, cy - oy, cw, ch );
-	QPtrDictIterator<void> it( *(d->dirtyItems) );
-	QListViewItem * i;
-	while( (i=(QListViewItem *)(it.currentKey())) != 0 ) {
+        std::map<QListViewItem*, QListViewItem *>::iterator it =  d->dirtyItems->begin();
+	while( it != d->dirtyItems->end() ) {
+            QListViewItem *i = it->first;
 	    ++it;
 	    QRect ir = itemRect( i ).intersect(viewport()->rect());
 	    if ( ir.isEmpty() || br.contains( ir ) )
 		// we're painting this one, or it needs no painting: forget it
-		d->dirtyItems->remove( (void *)i );
+		d->dirtyItems->erase( i );
 	}
-	if ( d->dirtyItems->count() ) {
+	if ( d->dirtyItems->size() ) {
 	    // there are still items left that need repainting
 	    d->dirtyItemTimer->start( 0, TRUE );
 	} else {
@@ -2008,9 +2008,9 @@ void QListView::updateDirtyItems()
 #if defined(LVDEBUG)
     debug( "updateDirtyItems" );
 #endif
-    QPtrDictIterator<void> it( *(d->dirtyItems) );
-    QListViewItem * i;
-    while( (i=(QListViewItem *)(it.currentKey())) != 0 ) {
+    std::map<QListViewItem*, QListViewItem *>::iterator it = d->dirtyItems->begin();
+    while( it != d->dirtyItems->end() ) {
+        QListViewItem *i = it->first;
 	++it;
 #if defined(LVDEBUG)
 	debug( " item %s (selected=%d)", i->text(0), i->isSelected() );
@@ -3123,8 +3123,11 @@ void QListView::repaintItem( const QListViewItem * item ) const
 	return;
     d->dirtyItemTimer->start( 0, TRUE );
     if ( !d->dirtyItems )
-	d->dirtyItems = new QPtrDict<void>();
-    d->dirtyItems->replace( (void *)item, (void *)item );
+	d->dirtyItems = new std::map<QListViewItem*, QListViewItem *>();
+
+    // I have no idea how this was supposed to work
+    QListViewItem *mutableItem = const_cast<QListViewItem*>(item);
+    (*d->dirtyItems)[mutableItem] = mutableItem;
 }
 
 
@@ -3566,9 +3569,9 @@ void QListView::setOpen( QListViewItem * item, bool open )
     if ( c && c->i == item ) {
 	d->dirtyItemTimer->start( 0, TRUE );
 	if ( !d->dirtyItems )
-	    d->dirtyItems = new QPtrDict<void>();
+	    d->dirtyItems = new std::map<QListViewItem*, QListViewItem *>();
 	while( c && c->i ) {
-	    d->dirtyItems->insert( (void *)(c->i), (void *)(c->i) );
+	    (*d->dirtyItems)[c->i] = c->i;
 	    c = d->drawables->next();
 	}
     }
