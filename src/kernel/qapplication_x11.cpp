@@ -116,7 +116,7 @@ static inline void bzero( void *s, int n )
   Internal variables and functions
  *****************************************************************************/
 
-static char    *appName;			// application name
+static char    *appName         = 0;		// application name
 static char    *appFont		= 0;		// application font
 static char    *appBGCol	= 0;		// application bg color
 static char    *appFGCol	= 0;		// application fg color
@@ -450,7 +450,6 @@ static void set_local_font()
 	delete[] lang;
 }
 
-
 /*****************************************************************************
   qt_init() - initializes Qt for X11
  *****************************************************************************/
@@ -461,7 +460,7 @@ static void qt_init_internal( int *argcptr, char **argv, Display *display )
       // Qt part of other application	
 
 	appForeignDpy = TRUE;
-	appName = "Qt-subapplication";
+	appName = strdup("Qt-subapplication"); // should not leak, it's only constructed once
 	appDpy  = display;
 	app_Xfd = XConnectionNumber( appDpy );
 
@@ -480,7 +479,7 @@ static void qt_init_internal( int *argcptr, char **argv, Display *display )
       // Set application name
 
 	p = strrchr( argv[0], '/' );
-	appName = p ? p + 1 : argv[0];
+	appName = strdup(p ? p + 1 : argv[0]); // strdup so we always can delete it on exit
 
       // Get command line params
 
@@ -504,8 +503,12 @@ static void qt_init_internal( int *argcptr, char **argv, Display *display )
 		if ( ++i < argc )
 		    appFGCol = argv[i];
 	    } else if ( arg == "-name" ) {
-		if ( ++i < argc )
-		    appName = argv[i];
+		if ( ++i < argc ) {
+                    if (appName) {
+                        delete appName;
+                    }
+		    appName = strdup(argv[i]);
+                }
 	    } else if ( arg == "-title" ) {
 		if ( ++i < argc )
 		    mwTitle = argv[i];
@@ -704,6 +707,9 @@ void qt_cleanup()
     QCursor::cleanup();
     QFont::cleanup();
     QColor::cleanup();
+
+    delete appName;
+    appName = NULL;
 
 #if !defined(NO_XIM)
     if ( xim ) {
