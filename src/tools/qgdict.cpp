@@ -26,6 +26,7 @@
 #include "qstring.h"
 #include "qdatastream.h"
 #include <ctype.h>
+#include <cassert>
 
 /*!
   \class QGDict qgdict.h
@@ -553,7 +554,10 @@ QDataStream &QGDict::read( QDataStream &s )
 	if ( triv ) {
 	    Q_UINT32 k_triv;
 	    s >> k_triv;			// key is 32-bit int
-	    k = (char *)k_triv;
+#ifndef NDEBUG
+            assert(false && "QGDict assumes 32 bit pointers, and is therefore not safe to load from disk");
+#endif
+	    k = (char *)(unsigned long)k_triv;
 	} else {
 	    s >> k;				// key is string
 	}
@@ -575,9 +579,12 @@ QDataStream& QGDict::write( QDataStream &s ) const
     while ( i<size() ) {
 	QBucket *n = vec[i];
 	while ( n ) {				// write all buckets
-	    if ( triv )
+	    if ( triv ) {
+#ifndef NDEBUG
+                assert(false && "QGDict assumes 32 bit pointers, and is therefore not safe to load from disk");
+#endif
 		s << (Q_UINT32)(long)n->getKey(); // write key as 32-bit int
-	    else
+            } else
 		s << n->getKey();		// write key as string
 	    write( s, n->getData() );		// write data
 	    n = n->getNext();
