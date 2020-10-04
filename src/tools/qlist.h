@@ -88,7 +88,7 @@ public:									      \
     type *prev()			{ return (type *)QGList::prev(); }    \
     void  toVector( QGVector *vec )const{ QGList::toVector(vec); }	      \
 private:								      \
-    void  deleteItem( GCI d ) { if ( del_item ) delete (type *)d; }	      \
+    void  deleteItem( type *d ) { if ( del_item ) delete d; }	      \
 }
 
 
@@ -174,7 +174,7 @@ public:
     type *prev()			{ return (type *)QGList::prev(); }
     void  toVector( QGVector *vec )const{ QGList::toVector(vec); }
 private:
-    void  deleteItem( GCI d ) { if ( del_item ) delete (type *)d; }
+    void  deleteItem( type *d ) { if ( del_item ) delete d; }
 };
 
 
