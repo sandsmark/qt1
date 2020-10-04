@@ -34,6 +34,7 @@
 #include "qasyncimageio.h"
 #include <stdlib.h>
 #include <ctype.h>
+#include <map>
 
 /*!
   \class QImage qimage.h
@@ -3955,6 +3956,14 @@ static bool read_xpm_string( QString &buf, QIODevice *d,
     return TRUE;
 }
 
+namespace {
+    struct QStringComparer {
+        bool operator()(const QString &a, const QString &b) const {
+            return strcmp(a.data(),b.data()) < 0;
+
+        }
+    };
+}
 
 //
 // INTERNAL
@@ -3994,8 +4003,7 @@ static void read_xpm_image_or_array( QImageIO * iio, const char ** source,
 
     image.create( w, h, 8, ncols );
 
-    QDict<void> colorMap( 569, TRUE );
-    colorMap.setAutoDelete( FALSE );
+    std::map<QString, uchar, QStringComparer> colorMap;
 
     int currentColor;
 
@@ -4043,19 +4051,19 @@ static void read_xpm_image_or_array( QImageIO * iio, const char ** source,
 		 sscanf( blue, "%x", &b ) != 1 )
 		return;		// couldn't sscanf
 	    image.setColor( currentColor, 0xff000000 | qRgb( r, g, b ) );
-	    colorMap.insert( index, (void*)(currentColor+1) );
+	    colorMap[index] = currentColor+1;
 	} else if ( buf == "c none" ) {
 	    image.setAlphaBuffer( TRUE );
 	    int transparentColor = currentColor;
 	    image.setColor( transparentColor, RGB_MASK & qRgb( 200,200,200 ) );
-	    colorMap.insert( index, (void*)(transparentColor+1) );
+	    colorMap[index] = transparentColor+1;
 	} else {
 	    r = " [a-z] ";	// symbolic color names: die die die
 	    i = r.match( buf );
 	    QString colorName = buf.mid(2, i > -1 ? i-2 : buf.length());
 	    QColor c( colorName );
 	    image.setColor( currentColor, 0xff000000 | c.rgb() );
-	    colorMap.insert( index, (void*)(currentColor+1) );
+	    colorMap[index] = currentColor+1;
 	}
     }
 
@@ -4072,14 +4080,14 @@ static void read_xpm_image_or_array( QImageIO * iio, const char ** source,
 	    b[1] = '\0';
 	    for ( x=0; x<w && d<end; x++ ) {
 		b[0] = *d++;
-		*p++ = (uchar)((int)(long)colorMap[b] - 1);
+		*p++ = colorMap[b] - 1;
 	    }
 	} else {
 	    char b[16];
 	    b[cpp] = '\0';
 	    for ( x=0; x<w && d<end; x++ ) {
 		strncpy( b, (char *)d, cpp );
-		*p++ = (uchar)((int)(long)colorMap[b] - 1);
+		*p++ = colorMap[b] - 1;
 		d += cpp;
 	    }
 	}
@@ -4135,9 +4143,10 @@ static void write_xpm_image( QImageIO * iio )
     else
 	image = iio->image();
 
-    QIntDict<void> colorMap( 569 );
+    std::map<int, int> colorMap;
 
-    int w = image.width(), h = image.height(), colors=0;
+    int w = image.width(), h = image.height();
+    int colors=0;
     int x, y;
 
     // build color table
@@ -4145,8 +4154,8 @@ static void write_xpm_image( QImageIO * iio )
 	QRgb * yp = (QRgb *)image.scanLine( y );
 	for( x=0; x<w; x++ ) {
 	    int color = (int)*(yp + x);
-	    if ( !colorMap.find( color ) )
-		colorMap.insert( color, (void*)(++colors) );
+	    if ( !colorMap.count( color ) )
+		colorMap[color] = ++colors ;
 	}
     }
 
@@ -4160,15 +4169,15 @@ static void write_xpm_image( QImageIO * iio )
       << "\"" << w << " " << h << " " << colors << " " << cpp << "\"";
 
     // write palette
-    QIntDictIterator<void> c( colorMap );
-    while ( c.current() ) {
-	QRgb color = (QRgb)c.currentKey();
+    std::map<int, int>::iterator c = colorMap.begin();
+    while ( c != colorMap.end() ) {
+	QRgb color = (QRgb)c->first;
 	if ( image.hasAlphaBuffer() && color == (color & RGB_MASK) )
 	    line.sprintf( "\"%s c None\"",
-			  xpm_color_name( cpp, (int)(long)c.current() ) );
+			  xpm_color_name( cpp, (int)(long)c->second ) );
 	else
 	    line.sprintf( "\"%s c #%02x%02x%02x\"",
-			  xpm_color_name( cpp, (int)(long)c.current() ),
+			  xpm_color_name( cpp, (int)(long)c->second ),
 			  qRed( color ),
 			  qGreen( color ),
 			  qBlue( color ) );
@@ -4183,7 +4192,7 @@ static void write_xpm_image( QImageIO * iio )
 	for( x=0; x<w; x++ ) {
 	    int color = (int)(*(yp + x));
 	    const char * chars = xpm_color_name( cpp,
-						 (int)(long)colorMap.find(color) );
+						 colorMap.find(color)->second );
 	    line[ x*cpp ] = chars[0];
 	    if ( cpp == 2 )
 		line[ x*cpp + 1 ] = chars[1];

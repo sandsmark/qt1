@@ -32,6 +32,7 @@
 #include "qkeycode.h"
 #include "qapplication.h"
 #include "qbrush.h"
+#include <map>
 #if defined(_WS_WIN_)
 #if defined(_CC_BOOL_DEF_)
 #undef	bool
@@ -433,7 +434,7 @@ inline bool QWidgetMapper::remove( WId id )
   QWidget member functions
  *****************************************************************************/
 
-typedef Q_DECLARE(QPtrDictM,void) QDeferDict;
+typedef std::map<QWidget*, uint> QDeferDict;
 
 static QDeferDict *deferredMoves   = 0;
 static QDeferDict *deferredResizes = 0;
@@ -450,9 +451,9 @@ static void initDeferredDicts()
 {
     if ( deferredMoves )
 	return;
-    deferredMoves   = new QDeferDict( 137 );
+    deferredMoves   = new std::map<QWidget*, uint>;
     CHECK_PTR( deferredMoves );
-    deferredResizes = new QDeferDict( 137 );
+    deferredResizes = new std::map<QWidget*, uint>;
     CHECK_PTR( deferredResizes );
     qAddPostRoutine( cleanupDeferredDicts );
 }
@@ -479,10 +480,10 @@ static inline short decompress_b( uint n )
 
 void QWidget::deferMove( const QPoint &oldPos )
 {
-    uint n = (uint)(long)deferredMoves->find( this );
+    uint n = deferredMoves->find(this)->second;
     if ( !n ) {
 	n = compress(oldPos.x(),oldPos.y());
-	deferredMoves->insert( this, (void*)n );
+	(*deferredMoves)[this] = n;
     }
 }
 
@@ -490,28 +491,28 @@ void QWidget::deferResize( const QSize &oldSize )
 {
     int w = oldSize.width();
     int h = oldSize.height();
-    uint n = (uint)(long)deferredResizes->find( this );
+    uint n = deferredResizes->find( this )->second;
     if ( n ) {
 	if ( w < 0 && decompress_a(n) > 0 ) {	// did setGeometry
-	    deferredResizes->take( this );
+	    deferredResizes->erase( this );
 	    n = compress(-decompress_a(n),-decompress_b(n));
-	    deferredResizes->insert( this, (void*)n );
+            (*deferredResizes)[this] = n;
 	}
     } else {
 	n = compress(w,h);
-	deferredResizes->insert( this, (void*)n );
+	(*deferredResizes)[this] = n;
     }
 }
 
 
 void QWidget::cancelMove()
 {
-    deferredMoves->take( this );
+    deferredMoves->erase( this );
 }
 
 void QWidget::cancelResize()
 {
-    deferredResizes->take( this );
+    deferredResizes->erase( this );
 }
 
 
@@ -522,8 +523,8 @@ void QWidget::cancelResize()
 void QWidget::sendDeferredEvents()
 {
     QApplication::sendPostedEvents( this, Event_ChildInserted );
-    uint m = (uint)(long)deferredMoves->find(this);
-    uint r = (uint)(long)deferredResizes->find(this);
+    uint m = deferredMoves->find(this)->second;
+    uint r = deferredResizes->find(this)->second;
     if ( m && r && decompress_a(r) < 0 ) {
 	// Hack it to work: the old width is negative to indicate that
 	// we wanted to setGeometry and not move + resize.
@@ -535,12 +536,12 @@ void QWidget::sendDeferredEvents()
 	    internalResize( width(), height() );
     }
     if ( m ) {
-	deferredMoves->take( this );
+	deferredMoves->erase( this );
 	QMoveEvent e( pos(), QPoint(decompress_a(m), decompress_b(m)) );
 	QApplication::sendEvent( this, &e );
     }
     if ( r ) {
-	deferredResizes->take( this );
+	deferredResizes->erase( this );
 	int w = decompress_a(r);
 	int h = decompress_b(r);
 	QResizeEvent e( size(), QSize(QABS(w),QABS(h)) );
@@ -658,8 +659,8 @@ QWidget::~QWidget()
 	QApplication::sendEvent( parentObj, &e );
     }
     if ( deferredMoves ) {
-	deferredMoves->take( this );	// clean deferred move/resize
-	deferredResizes->take( this );
+	deferredMoves->erase( this );	// clean deferred move/resize
+	deferredResizes->erase( this );
     }
     if ( QApplication::main_widget == this ) {	// reset main widget
 	QApplication::main_widget = 0;
