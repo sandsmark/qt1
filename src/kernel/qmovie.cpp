@@ -933,11 +933,11 @@ void QMoviePrivate::sizeChanged( const QSize& t0 )
     RT1 r1;
     QConnectionListIt it(*clist);
     QConnection   *c;
-    QSenderObject *object;
+    QObject *object;
     while ( (c=it.current()) ) {
 	++it;
-	object = (QSenderObject*)c->object();
-	object->setSender( this );
+	object = c->object();
+	QSenderObject::setSenderSafe( this, c->object() );
 	switch ( c->numArgs() ) {
 	    case 0:
 		r0 = *((PRT0)(c->member()));
@@ -965,11 +965,11 @@ void QMoviePrivate::areaChanged( const QRect& t0 )
     RT1 r1;
     QConnectionListIt it(*clist);
     QConnection   *c;
-    QSenderObject *object;
+    QObject *object;
     while ( (c=it.current()) ) {
 	++it;
-	object = (QSenderObject*)c->object();
-	object->setSender( this );
+	object = c->object();
+	QSenderObject::setSenderSafe( this, c->object() );
 	switch ( c->numArgs() ) {
 	    case 0:
 		r0 = *((PRT0)(c->member()));
