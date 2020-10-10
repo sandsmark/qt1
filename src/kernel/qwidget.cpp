@@ -480,9 +480,9 @@ static inline short decompress_b( uint n )
 
 void QWidget::deferMove( const QPoint &oldPos )
 {
-    uint n = deferredMoves->find(this)->second;
-    if ( !n ) {
-	n = compress(oldPos.x(),oldPos.y());
+    std::map<QWidget*, uint>::const_iterator it = deferredMoves->find(this);
+    if (it == deferredMoves->end() || !it->second) {
+	uint n = compress(oldPos.x(),oldPos.y());
 	(*deferredMoves)[this] = n;
     }
 }
@@ -491,7 +491,11 @@ void QWidget::deferResize( const QSize &oldSize )
 {
     int w = oldSize.width();
     int h = oldSize.height();
-    uint n = deferredResizes->find( this )->second;
+    uint n = 0;
+    std::map<QWidget*, uint>::const_iterator it = deferredResizes->find( this );
+    if (it != deferredResizes->end()) {
+        n = it->second;
+    }
     if ( n ) {
 	if ( w < 0 && decompress_a(n) > 0 ) {	// did setGeometry
 	    deferredResizes->erase( this );
@@ -523,8 +527,17 @@ void QWidget::cancelResize()
 void QWidget::sendDeferredEvents()
 {
     QApplication::sendPostedEvents( this, Event_ChildInserted );
-    uint m = deferredMoves->find(this)->second;
-    uint r = deferredResizes->find(this)->second;
+    uint m = 0;
+    std::map<QWidget*, uint>::const_iterator it = deferredMoves->find(this);
+    if (it != deferredMoves->end()) {
+        m = it->second;
+    }
+    uint r = 0;
+    it = deferredResizes->find(this);
+    if (it != deferredResizes->end()) {
+        r = it->second;
+    }
+
     if ( m && r && decompress_a(r) < 0 ) {
 	// Hack it to work: the old width is negative to indicate that
 	// we wanted to setGeometry and not move + resize.
