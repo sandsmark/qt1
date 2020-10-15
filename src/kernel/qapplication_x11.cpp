@@ -708,7 +708,7 @@ void qt_cleanup()
     QFont::cleanup();
     QColor::cleanup();
 
-    delete appName;
+    free(appName);
     appName = NULL;
 
 #if !defined(NO_XIM)
